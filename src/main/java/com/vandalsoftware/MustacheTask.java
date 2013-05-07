@@ -24,12 +24,15 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.CharArrayWriter;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.Flushable;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 
 /**
@@ -54,32 +57,45 @@ public class MustacheTask extends Task {
         Object obj = yaml.load(ymlFileReader);
         closeSilently(ymlFileReader);
 
-        Writer writer;
-        final boolean fileOutput = this.outputPath != null;
-        if (fileOutput) {
+        if (this.outputPath != null) {
+            // Write to a temporary location. This is to support the case where the outputPath
+            // might be the same as the templatePath.
+            BufferedWriter fileWriter = null;
             try {
-                writer = new BufferedWriter(new FileWriter(this.outputPath));
+                CharArrayWriter tempWriter = new CharArrayWriter();
+                compile(obj, tempWriter);
+                fileWriter = new BufferedWriter(new FileWriter(this.outputPath));
+                tempWriter.writeTo(fileWriter);
             } catch (IOException e) {
                 BuildException be = new BuildException("Couldn't open " + this.outputPath);
                 be.initCause(e);
                 throw be;
+            } finally {
+                flushSilently(fileWriter);
+                closeSilently(fileWriter);
             }
-        } else {
-            writer = new OutputStreamWriter(System.out);
-        }
-        MustacheFactory mf = new DefaultMustacheFactory();
-        Mustache mustache = mf.compile(this.templatePath);
-        mustache.execute(writer, obj);
-        try {
-            writer.flush();
-        } catch (IOException e) {
-            BuildException be = new BuildException("Couldn't write to output");
-            be.initCause(e);
-            throw be;
-        }
-        closeSilently(writer);
-        if (fileOutput) {
             log("Wrote to " + this.outputPath);
+        } else {
+            compile(obj, new BufferedWriter(new OutputStreamWriter(System.out)));
+        }
+    }
+
+    private void compile(Object obj, Writer writer) throws BuildException {
+        Reader reader = null;
+        try {
+            try {
+                reader = new BufferedReader(new FileReader(this.templatePath));
+            } catch (FileNotFoundException e) {
+                BuildException be = new BuildException("Couldn't open " + this.templatePath);
+                be.initCause(e);
+                throw be;
+            }
+            MustacheFactory mf = new DefaultMustacheFactory();
+            Mustache mustache = mf.compile(reader, "ant");
+            mustache.execute(writer, obj);
+        } finally {
+            closeSilently(reader);
+            flushSilently(writer);
         }
     }
 
@@ -93,6 +109,13 @@ public class MustacheTask extends Task {
 
     public void setToFile(String filePath) {
         this.outputPath = filePath;
+    }
+
+    private void flushSilently(Flushable f) {
+        try {
+            f.flush();
+        } catch (IOException ignored) {
+        }
     }
 
     private void closeSilently(Closeable c) {
