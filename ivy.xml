@@ -1,5 +1,5 @@
 <ivy-module version="2.0">
-    <info organisation="vandalsoftware" module="mustache.ant" revision="1.0.0">
+    <info organisation="com.vandalsoftware.mustache" module="mustache.ant" revision="1.0.0">
         <license name="Apache License 2.0" url="http://www.apache.org/licenses/LICENSE-2.0"/>
     </info>
     <configurations defaultconfmapping="default"/>
