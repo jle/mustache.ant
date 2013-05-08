@@ -1,0 +1,18 @@
+<ivysettings>
+    <settings defaultResolver="my-chain"/>
+    <include url="${ivy.default.settings.dir}/ivysettings-public.xml"/>
+    <include url="${ivy.default.settings.dir}/ivysettings-shared.xml"/>
+    <include url="${ivy.default.settings.dir}/ivysettings-local.xml"/>
+    <include url="${ivy.default.settings.dir}/ivysettings-main-chain.xml"/>
+    <include url="${ivy.default.settings.dir}/ivysettings-default-chain.xml"/>
+    <resolvers>
+        <url name="twitter" m2compatible="true">
+            <artifact pattern="http://maven.twttr.com/[organisation]/[module]/[revision]/[artifact]-[revision].[ext]"/>
+        </url>
+        <chain name="my-chain">
+            <resolver ref="twitter"/>
+            <resolver ref="default"/>
+        </chain>
+    </resolvers>
+</ivysettings>
+

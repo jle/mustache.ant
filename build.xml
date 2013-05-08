@@ -15,26 +15,77 @@
    limitations under the License.
   -->
 
-<project name="mustache.ant" basedir="." default="use">
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="mustache.ant" basedir="." default="run">
 
     <property name="project.version">1.0.0</property>
     <property name="bin.dir" value="target"/>
     <property name="src.dir" value="src"/>
-    <property name="classes.dir" value="${bin.dir}/classes"/>
-    <property name="out.jar" value="${bin.dir}/${ant.project.name}-${project.version}-SNAPSHOT-jar-with-dependencies.jar"/>
+    <property name="lib.dir" value="lib" />
+    <property name="build.dir" value="${bin.dir}/classes"/>
 
-    <path id="classpath.compile"/>
-
-    <path id="classpath.run">
-        <path path="${java.class.path}"/>
-        <path location="${out.jar}"/>
-        <path refid="classpath.compile"/>
+    <path id="run.path.id">
+        <path refid="lib.path.id" />
+        <path location="${build.dir}" />
     </path>
 
-    <target name="use" description="Use the Task">
+    <path id="lib.path.id">
+        <fileset dir="${lib.dir}" />
+	</path>
+
+    <property name="ivy.install.version" value="2.1.0" />
+    <condition property="ivy.home" value="${env.IVY_HOME}">
+      <isset property="env.IVY_HOME" />
+    </condition>
+    <property name="ivy.home" value="${user.home}/.ant" />
+    <property name="ivy.jar.dir" value="${ivy.home}/lib" />
+    <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
+
+    <target name="download-ivy" unless="offline">
+
+        <mkdir dir="${ivy.jar.dir}"/>
+        <!-- download Ivy from web site so that it can be used even without any special installation -->
+        <get src="http://repo2.maven.org/maven2/org/apache/ivy/ivy/${ivy.install.version}/ivy-${ivy.install.version}.jar" 
+             dest="${ivy.jar.file}" usetimestamp="true"/>
+    </target>
+
+    <target name="init-ivy" depends="download-ivy">
+      <!-- try to load ivy here from ivy home, in case the user has not already dropped
+              it into ant's lib dir (note that the latter copy will always take precedence).
+              We will not fail as long as local lib dir exists (it may be empty) and
+              ivy is in at least one of ant's lib dir or the local lib dir. -->
+        <path id="ivy.lib.path">
+            <fileset dir="${ivy.jar.dir}" includes="*.jar"/>
+        </path>
+        <taskdef resource="org/apache/ivy/ant/antlib.xml"
+                 uri="antlib:org.apache.ivy.ant" classpathref="ivy.lib.path"/>
+    </target>
+
+    <target name="compile" description="Compiles the Task" depends="resolve">
+        <mkdir dir="${build.dir}" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="lib.path.id" includeAntRuntime="false"/>
+    </target>
+
+    <target name="package" description="JARs the Task" depends="compile">
+        <ivy:info/>
+        <property name="out.jar" value="${bin.dir}/${ivy.module}-${ivy.revision}.jar"/>
+        <jar destfile="${out.jar}" basedir="${build.dir}"/>
+    </target>
+
+    <target name="run" description="Run the Task" depends="package">
         <taskdef name="mustache" classname="com.vandalsoftware.MustacheTask"
-                 classpath="${out.jar}"/>
+                 classpathref="run.path.id"/>
         <mustache yml="example.yml" file="example.mustache" tofile="target/example.xml"/>
+    </target>
+
+    <target name="resolve" description="Retrieve dependencies with ivy" depends="init-ivy">
+        <ivy:retrieve sync="true"/>
+    </target>
+
+    <target name="clean" description="Delete all generated files">
+        <delete failonerror="false" includeEmptyDirs="true">
+            <fileset dir="${bin.dir}"/>
+            <fileset dir="${lib.dir}"/>
+        </delete>
     </target>
 
 </project>
