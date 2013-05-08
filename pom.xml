@@ -26,8 +26,9 @@
     </properties>
 
     <scm>
+        <connection>scm:git:git@github.com/jonathanle/mustache.ant.git</connection>
+        <developerConnection>scm:git:git@github.com:jonathanle/mustache.ant.git</developerConnection>
         <url>git@github.com:jonathanle/mustache.ant.git</url>
-        <connection>scm:git:git://github.com/jonathanle/mustache.ant.git</connection>
     </scm>
 
     <distributionManagement>
