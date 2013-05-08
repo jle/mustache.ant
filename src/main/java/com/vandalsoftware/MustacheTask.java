@@ -112,6 +112,9 @@ public class MustacheTask extends Task {
     }
 
     private void flushSilently(Flushable f) {
+        if (f == null) {
+            return;
+        }
         try {
             f.flush();
         } catch (IOException ignored) {
@@ -119,6 +122,9 @@ public class MustacheTask extends Task {
     }
 
     private void closeSilently(Closeable c) {
+        if (c == null) {
+            return;
+        }
         try {
             c.close();
         } catch (IOException ignored) {
